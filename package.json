@@ -1,0 +1,70 @@
+{
+  "name": "eve-vault-mcp",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Sign in with EVE Vault for MCP: let AI agents use EVE Frontier dApps for players",
+  "license": "Apache-2.0",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/raceee/eve-vault-mcp.git"
+  },
+  "type": "module",
+  "engines": {
+    "node": ">=22"
+  },
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    },
+    "./next": {
+      "types": "./dist/next.d.ts",
+      "import": "./dist/next.js"
+    },
+    "./stores/postgres": {
+      "types": "./dist/stores/postgres.d.ts",
+      "import": "./dist/stores/postgres.js"
+    },
+    "./stores/redis": {
+      "types": "./dist/stores/redis.d.ts",
+      "import": "./dist/stores/redis.js"
+    }
+  },
+  "files": [
+    "dist",
+    "LICENSE",
+    "README.md",
+    "INTEGRATING.md",
+    "SECURITY.md"
+  ],
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json && vite build",
+    "dev": "tsx watch examples/toy-server.ts",
+    "example": "tsx examples/toy-server.ts",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "typecheck": "tsc --noEmit -p tsconfig.json && tsc --noEmit -p tsconfig.web.json",
+    "lint": "eslint src test examples web",
+    "ci": "npm run lint && npm run typecheck && npm test && npm run build"
+  },
+  "peerDependencies": {
+    "@mysten/sui": "^1.30.0"
+  },
+  "dependencies": {
+    "@hono/node-server": "^1.19.6",
+    "@mysten/sui": "^1.37.0",
+    "hono": "^4.10.3"
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.39.1",
+    "@mysten/wallet-standard": "^0.16.2",
+    "@types/node": "^22.19.1",
+    "@wallet-standard/app": "^1.1.0",
+    "eslint": "^9.39.1",
+    "tsx": "^4.20.6",
+    "typescript": "^5.9.3",
+    "typescript-eslint": "^8.46.4",
+    "vite": "^7.1.12",
+    "vitest": "^3.2.4"
+  }
+}
