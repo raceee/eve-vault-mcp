@@ -39,6 +39,7 @@
     "python"
   ],
   "scripts": {
+    "prepare": "npm run build",
     "build": "tsc -p tsconfig.build.json && vite build",
     "dev": "tsx watch examples/toy-server.ts",
     "example": "tsx examples/toy-server.ts",

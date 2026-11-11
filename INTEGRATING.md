@@ -8,6 +8,8 @@ Nothing here assumes a particular game world, contract, or product. Install from
 npm install github:raceee/eve-vault-mcp#main
 ```
 
+`dist/` is gitignored. Git installs run the package `prepare` script (`npm run build`) so `eve-vault-mcp` and `eve-vault-mcp/next` resolve.
+
 Do not `npm publish` this package from your app repo.
 
 ## What you add (checklist)
