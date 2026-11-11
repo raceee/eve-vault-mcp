@@ -9,9 +9,11 @@ import { serveStatic } from "@hono/node-server/serve-static";
 import { registerDynamicClient, toDcrResponse } from "../clients.js";
 import { isKitError } from "../errors.js";
 import type { EveVaultMcpKit } from "../kit.js";
+import { consumeLiveNonce, issueStandaloneNonce, publicNonce } from "../nonce.js";
 import { completeLogin, exchangeToken, loadLoginChallenge, oauthRedirectError, startAuthorization } from "../oauth.js";
 import { completePreparedAction, getPreparedActionForDisplay, readPreparedAction } from "../prepare.js";
 import { revokeToken, verifyAccessToken } from "../tokens.js";
+import { joinIssuerPath } from "../urls.js";
 import { approvePageHtml, loginPageHtml } from "./pages.js";
 
 const here = dirname(fileURLToPath(import.meta.url));
@@ -81,7 +83,7 @@ export function createHttpApp(kit: EveVaultMcpKit): Hono {
     }
   });
 
-  app.get("/login", (c) => c.html(loginPageHtml()));
+  app.get("/login", (c) => c.html(loginPageHtml(issuer, kit.config.appearance)));
 
   app.get("/login/challenge", async (c) => {
     const sessionId = c.req.query("session");
@@ -187,7 +189,24 @@ export function createHttpApp(kit: EveVaultMcpKit): Hono {
     });
   });
 
-  app.get("/approve/:id", (c) => c.html(approvePageHtml()));
+  app.post("/nonces", async (c) => {
+    const body = (await c.req.json().catch(() => ({}))) as {
+      purpose?: string;
+      metadata?: Record<string, unknown>;
+    };
+    const record = await issueStandaloneNonce(kit.store, kit.config.ttl, kit.now(), {
+      ...(body.purpose ? { purpose: body.purpose } : {}),
+      ...(body.metadata ? { metadata: body.metadata } : {}),
+    });
+    return c.json(publicNonce(record), 201);
+  });
+
+  app.post("/nonces/:id/consume", async (c) => {
+    const record = await consumeLiveNonce(kit.store, c.req.param("id"), kit.now());
+    return c.json(publicNonce(record));
+  });
+
+  app.get("/approve/:id", (c) => c.html(approvePageHtml(issuer, kit.config.appearance)));
 
   app.get("/approve/:id/details", async (c) => {
     const action = await getPreparedActionForDisplay(kit.store, c.req.param("id"), kit.now());
@@ -229,11 +248,11 @@ export function createHttpApp(kit: EveVaultMcpKit): Hono {
 function authorizationServerMetadata(issuer: string, scopes: string[]) {
   return {
     issuer,
-    authorization_endpoint: new URL("/authorize", issuer).toString(),
-    token_endpoint: new URL("/token", issuer).toString(),
-    revocation_endpoint: new URL("/revoke", issuer).toString(),
-    introspection_endpoint: new URL("/introspect", issuer).toString(),
-    registration_endpoint: new URL("/register", issuer).toString(),
+    authorization_endpoint: joinIssuerPath(issuer, "/authorize"),
+    token_endpoint: joinIssuerPath(issuer, "/token"),
+    revocation_endpoint: joinIssuerPath(issuer, "/revoke"),
+    introspection_endpoint: joinIssuerPath(issuer, "/introspect"),
+    registration_endpoint: joinIssuerPath(issuer, "/register"),
     response_types_supported: ["code"],
     grant_types_supported: ["authorization_code", "refresh_token"],
     token_endpoint_auth_methods_supported: ["none"],

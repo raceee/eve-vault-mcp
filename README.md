@@ -44,8 +44,8 @@ Drop-in for an existing app: see [INTEGRATING.md](./INTEGRATING.md).
 
 | Import | Role |
 | --- | --- |
-| `eve-vault-mcp` | Kit factory, memory store, verifiers, MCP helpers, approval cards |
-| `eve-vault-mcp/next` | Next.js App Router `GET`/`POST` handlers |
+| `eve-vault-mcp` | Kit factory, memory store, verifiers, MCP helpers, approval + structured cards, standalone nonces |
+| `eve-vault-mcp/next` | Next.js App Router `GET`/`POST` handlers (strips the issuer mount path) |
 | `eve-vault-mcp/stores/postgres` | `createPostgresStore` + `POSTGRES_SCHEMA` |
 | `eve-vault-mcp/stores/redis` | `createRedisStore` |
 
@@ -85,7 +85,9 @@ Wallet name advertised to dApps: `Eve Vault`.
 
 ## Tests
 
-`npm test` covers nonce single-use/expiry, forged and wrong-address signatures, PKCE, scope checks, token expiry/revocation, approval-link expiry, introspection, and approval-card text+widget payload.
+`npm test` covers nonce single-use/expiry (OAuth and standalone), forged and wrong-address signatures, PKCE, scope checks, token expiry/revocation, approval-link expiry, introspection, subpath issuer URLs, Next.js mount rewriting, locked-down structured cards, and approval-card text+widget payload.
+
+Python resource-server helpers (introspect + nonce consume): `python -m unittest discover -s python -t python`.
 
 ## License
 

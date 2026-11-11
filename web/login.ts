@@ -31,8 +31,12 @@ type Challenge = {
   expiresAt: number;
 };
 
+function kitBase(): string {
+  return document.documentElement.dataset.eveVaultBase?.replace(/\/$/, "") ?? "";
+}
+
 async function fetchChallenge(sessionId: string): Promise<Challenge> {
-  const response = await fetch(`/login/challenge?session=${encodeURIComponent(sessionId)}`);
+  const response = await fetch(`${kitBase()}/login/challenge?session=${encodeURIComponent(sessionId)}`);
   const body = (await response.json()) as Challenge & { error_description?: string };
   if (!response.ok) {
     throw new Error(body.error_description ?? "Could not load sign-in challenge");
@@ -72,7 +76,7 @@ function renderChallenge(challenge: Challenge): void {
       status.textContent = "Waiting for EVE Vault…";
       try {
         const signed = await signLoginMessage(challenge.message);
-        const response = await fetch("/login/complete", {
+        const response = await fetch(`${kitBase()}/login/complete`, {
           method: "POST",
           headers: { "content-type": "application/json" },
           body: JSON.stringify({

@@ -4,6 +4,7 @@ import { randomId } from "./crypto.js";
 import { KitError } from "./errors.js";
 import type { KitStore } from "./store.js";
 import type { PreparedAction, PreparedTransaction, TtlConfig } from "./types.js";
+import { joinIssuerPath } from "./urls.js";
 
 export type PrepareActionInput = {
   walletAddress: string;
@@ -50,7 +51,7 @@ export async function prepareAction(
   await store.putPreparedAction(action);
   return {
     id: action.id,
-    approvalUrl: new URL(`/approve/${action.id}`, issuer).toString(),
+    approvalUrl: joinIssuerPath(issuer, `/approve/${action.id}`),
     expiresAt: action.expiresAt,
   };
 }

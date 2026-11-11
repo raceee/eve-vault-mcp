@@ -10,6 +10,7 @@ import { assertKnownScopes, parseScopeParam } from "./scopes.js";
 import type { KitStore } from "./store.js";
 import { issueTokenPair, rotateRefreshToken, type IssuedTokens } from "./tokens.js";
 import type { AuthSession, TtlConfig } from "./types.js";
+import { joinIssuerPath } from "./urls.js";
 import type { SignatureVerifier } from "./verify.js";
 
 export type AuthorizeQuery = {
@@ -92,12 +93,13 @@ export async function startAuthorization(
   await store.putNonce({
     id: nonceId,
     sessionId,
+    purpose: "oauth",
     value: nonceValue,
     expiresAt: config.now + config.ttl.nonceMs,
   });
   return {
     session,
-    loginUrl: new URL(`/login?session=${encodeURIComponent(sessionId)}`, config.issuer).toString(),
+    loginUrl: joinIssuerPath(config.issuer, `/login?session=${encodeURIComponent(sessionId)}`),
   };
 }
 

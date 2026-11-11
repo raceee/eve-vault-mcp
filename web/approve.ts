@@ -5,6 +5,10 @@ if (!app) {
   throw new Error("#app missing");
 }
 
+function kitBase(): string {
+  return document.documentElement.dataset.eveVaultBase?.replace(/\/$/, "") ?? "";
+}
+
 const id = window.location.pathname.split("/").pop();
 
 void boot();
@@ -34,7 +38,7 @@ type Details = {
 };
 
 async function fetchDetails(actionId: string): Promise<Details> {
-  const response = await fetch(`/approve/${encodeURIComponent(actionId)}/details`);
+  const response = await fetch(`${kitBase()}/approve/${encodeURIComponent(actionId)}/details`);
   const body = (await response.json()) as Details & { error_description?: string };
   if (!response.ok) {
     throw new Error(body.error_description ?? "This approval link is not available");
@@ -90,7 +94,7 @@ function render(details: Details): void {
           address = executed.address;
           digest = executed.digest;
         }
-        const response = await fetch(`/approve/${encodeURIComponent(details.id)}/complete`, {
+        const response = await fetch(`${kitBase()}/approve/${encodeURIComponent(details.id)}/complete`, {
           method: "POST",
           headers: { "content-type": "application/json" },
           body: JSON.stringify({ address, digest }),

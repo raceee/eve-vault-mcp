@@ -7,6 +7,8 @@
  *   import { kit } from "@/lib/eve-vault-mcp";
  *   export const { GET, POST, OPTIONS } = createNextRouteHandlers(kit);
  *
- * Also add well-known routes at the site root. See INTEGRATING.md.
+ * Set issuer to the public URL of this mount. The helper strips that
+ * pathname so Hono sees `/authorize`. Well-known routes at the site root
+ * must use `createWellKnownHandlers` (no strip). See INTEGRATING.md.
  */
 export {};

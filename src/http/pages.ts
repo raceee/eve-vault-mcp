@@ -1,27 +1,30 @@
-export function layout(options: { title: string; entry: "login" | "approve"; body: string }): string {
+import { appearanceStyleBlock, type KitAppearance } from "../appearance.js";
+import { joinIssuerPath } from "../urls.js";
+
+export function layout(options: {
+  title: string;
+  entry: "login" | "approve";
+  body: string;
+  issuer: string;
+  appearance?: KitAppearance;
+}): string {
+  const extraHead = options.appearance?.extraHeadHtml ?? "";
+  const asset = joinIssuerPath(options.issuer, `/assets/${options.entry}.js`);
   return `<!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-eve-vault-base="${escapeHtml(options.issuer)}">
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>${escapeHtml(options.title)}</title>
+  ${extraHead}
   <style>
-    :root {
-      color-scheme: dark;
-      --bg: #0e1116;
-      --panel: #171b22;
-      --ink: #e8edf5;
-      --muted: #9aa6b8;
-      --line: #2a3140;
-      --accent: #7ae0c3;
-      --danger: #f08a8a;
-    }
+    ${appearanceStyleBlock(options.appearance)}
     * { box-sizing: border-box; }
     body {
       margin: 0;
       min-height: 100vh;
       font: 15px/1.45 ui-sans-serif, system-ui, sans-serif;
-      background: radial-gradient(1200px 500px at 50% -10%, #1c2433, var(--bg));
+      background: radial-gradient(1200px 500px at 50% -10%, color-mix(in srgb, var(--panel) 70%, var(--bg)), var(--bg));
       color: var(--ink);
     }
     main {
@@ -41,7 +44,7 @@ export function layout(options: { title: string; entry: "login" | "approve"; bod
     pre {
       white-space: pre-wrap;
       word-break: break-word;
-      background: #0c0f14;
+      background: var(--bg);
       border-radius: 10px;
       padding: 0.9rem;
       color: var(--ink);
@@ -53,7 +56,7 @@ export function layout(options: { title: string; entry: "login" | "approve"; bod
       border-radius: 10px;
       padding: 0.7rem 1rem;
       background: var(--accent);
-      color: #08221a;
+      color: var(--accent-ink);
       font-weight: 650;
       cursor: pointer;
     }
@@ -70,15 +73,17 @@ export function layout(options: { title: string; entry: "login" | "approve"; bod
   <main>
     ${options.body}
   </main>
-  <script type="module" src="/assets/${options.entry}.js"></script>
+  <script type="module" src="${escapeHtml(asset)}"></script>
 </body>
 </html>`;
 }
 
-export function loginPageHtml(): string {
+export function loginPageHtml(issuer: string, appearance?: KitAppearance): string {
   return layout({
     title: "Sign in with EVE Vault",
     entry: "login",
+    issuer,
+    ...(appearance ? { appearance } : {}),
     body: `
       <p class="mono">Sign in with EVE Vault for MCP</p>
       <h1>Authorize an AI agent</h1>
@@ -90,10 +95,12 @@ export function loginPageHtml(): string {
   });
 }
 
-export function approvePageHtml(): string {
+export function approvePageHtml(issuer: string, appearance?: KitAppearance): string {
   return layout({
     title: "Approve with EVE Vault",
     entry: "approve",
+    issuer,
+    ...(appearance ? { appearance } : {}),
     body: `
       <p class="mono">Prepared action</p>
       <h1>Sign this in EVE Vault</h1>

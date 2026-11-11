@@ -29,7 +29,10 @@ export type AuthSession = {
 
 export type NonceRecord = {
   id: string;
-  sessionId: string;
+  /** Set for OAuth login nonces; omitted for standalone sign-in nonces. */
+  sessionId?: string;
+  purpose?: string;
+  metadata?: Record<string, unknown>;
   value: string;
   expiresAt: number;
   consumedAt?: number;
