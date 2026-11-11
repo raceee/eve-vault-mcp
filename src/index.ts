@@ -43,11 +43,41 @@ export {
 } from "./approval-card.js";
 export type { ApprovalCardModel, McpToolResult } from "./approval-card.js";
 
+export {
+  STRUCTURED_CARD_RESOURCE_URI,
+  LOCKED_DOWN_WIDGET_CSP,
+  buildStructuredCardHtml,
+  htmlCardToolResult,
+  lockedDownWidgetMeta,
+  structuredCardResourceContents,
+  structuredCardToolResult,
+} from "./html-card.js";
+export type {
+  HtmlCardOptions,
+  StructuredCardItem,
+  StructuredCardModel,
+  StructuredCardRow,
+  UiResource,
+} from "./html-card.js";
+
+export type { KitAppearance } from "./appearance.js";
+export { issueStandaloneNonce, consumeLiveNonce, publicNonce } from "./nonce.js";
+export type { IssueNonceInput } from "./nonce.js";
+export {
+  joinIssuerPath,
+  issuerMountPath,
+  issuerOrigin,
+  rewriteRequestForMount,
+  wellKnownAuthorizationServerUrl,
+  wellKnownProtectedResourceUrl,
+} from "./urls.js";
+
 export { isKitError, KitError, InvalidSignatureError, NonceError, ScopeError, TokenError } from "./errors.js";
 
 export type {
   Actor,
   CharacterIdentity,
+  NonceRecord,
   PreparedAction,
   PreparedTransaction,
   AccessTokenRecord,
@@ -56,3 +86,4 @@ export type {
 export type { PrepareActionInput, PrepareActionResult, GasSponsor } from "./prepare.js";
 export type { StaticClientConfig } from "./clients.js";
 export { createNextRouteHandlers, createWellKnownHandlers } from "./next.js";
+export type { NextRouteHandlerOptions } from "./next.js";

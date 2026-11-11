@@ -17,13 +17,15 @@ Node 22+. Do not publish the package to npm from a contribution.
 
 Do not weaken these cases:
 
-- nonce single-use and expiry
+- nonce single-use and expiry (OAuth login and standalone `issueNonce`)
 - forged and wrong-address signatures
 - PKCE S256
 - scope enforcement
 - token expiry and revocation
 - approval-link expiry
 - approval card always includes a plain URL
+- structured cards are locked down (no external scripts, empty CSP, approval opens a new tab)
+- issuer path is preserved on authorize/login/approve URLs
 
 ## Pull requests
 

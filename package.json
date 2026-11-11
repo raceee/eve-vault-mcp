@@ -35,13 +35,16 @@
     "LICENSE",
     "README.md",
     "INTEGRATING.md",
-    "SECURITY.md"
+    "SECURITY.md",
+    "python"
   ],
   "scripts": {
+    "prepare": "npm run build",
     "build": "tsc -p tsconfig.build.json && vite build",
     "dev": "tsx watch examples/toy-server.ts",
     "example": "tsx examples/toy-server.ts",
     "test": "vitest run",
+    "test:python": "python -m unittest discover -s python -t python",
     "test:watch": "vitest",
     "typecheck": "tsc --noEmit -p tsconfig.json && tsc --noEmit -p tsconfig.web.json",
     "lint": "eslint src test examples web",

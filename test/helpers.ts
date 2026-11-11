@@ -22,12 +22,16 @@ export type TestKit = {
 export async function createTestKit(overrides?: {
   character?: { id: string; name?: string };
   ttl?: Partial<TtlConfig>;
+  issuer?: string;
+  resource?: string;
 }): Promise<TestKit> {
   const verifier = new FakeVerifier();
   const clock = new ManualClock(1_700_000_000_000);
+  const issuer = overrides?.issuer ?? ISSUER;
+  const resource = overrides?.resource ?? RESOURCE;
   const kit = await createEveVaultMcpKit({
-    issuer: ISSUER,
-    resource: RESOURCE,
+    issuer,
+    resource,
     serverName: "Toy dApp",
     scopes: [...SCOPES],
     verifier,

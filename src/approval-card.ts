@@ -1,8 +1,17 @@
+import type { KitAppearance } from "./appearance.js";
+import {
+  htmlCardToolResult,
+  lockedDownWidgetMeta,
+  MCP_APP_MIME_TYPE,
+  OPENAI_WIDGET_MIME_TYPE,
+  type McpToolResult,
+  type UiResource,
+} from "./html-card.js";
 import type { PreparedAction } from "./types.js";
 
 export const APPROVAL_CARD_RESOURCE_URI = "ui://eve-vault-mcp/approval-card.html";
-export const MCP_APP_MIME_TYPE = "text/html;profile=mcp-app";
-export const OPENAI_WIDGET_MIME_TYPE = "text/html+skybridge";
+export { MCP_APP_MIME_TYPE, OPENAI_WIDGET_MIME_TYPE };
+export type { McpToolResult };
 
 export type ApprovalCardModel = {
   id: string;
@@ -13,30 +22,6 @@ export type ApprovalCardModel = {
   expiresAt: number;
   kind: string;
   status: string;
-};
-
-export type McpContentBlock =
-  | { type: "text"; text: string }
-  | {
-      type: "resource";
-      resource: {
-        uri: string;
-        mimeType: string;
-        text: string;
-        _meta?: Record<string, unknown>;
-      };
-    }
-  | {
-      type: "resource_link";
-      uri: string;
-      name: string;
-      mimeType?: string;
-    };
-
-export type McpToolResult = {
-  content: McpContentBlock[];
-  structuredContent: ApprovalCardModel;
-  _meta: Record<string, unknown>;
 };
 
 export function toApprovalCardModel(
@@ -61,14 +46,16 @@ export function toApprovalCardModel(
  * `allFrames: true` and MCP hosts sandbox widgets in a cross-origin iframe,
  * so the extension is not expected to appear inside the card.
  */
-export function buildApprovalCardHtml(model: ApprovalCardModel): string {
+export function buildApprovalCardHtml(model: ApprovalCardModel, appearance?: KitAppearance): string {
   const payload = JSON.stringify(model).replace(/</g, "\\u003c");
+  const extraHead = appearance?.extraHeadHtml ?? "";
   return `<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Approve in EVE Vault</title>
+  ${extraHead}
   <style>
     :root { color-scheme: dark; }
     body { margin: 0; font: 14px/1.45 ui-sans-serif, system-ui, sans-serif; background: #12161d; color: #e8edf5; }
@@ -120,8 +107,11 @@ export function buildApprovalCardHtml(model: ApprovalCardModel): string {
 </html>`;
 }
 
-export function approvalCardToolResult(model: ApprovalCardModel): McpToolResult {
-  const html = buildApprovalCardHtml(model);
+export function approvalCardToolResult(
+  model: ApprovalCardModel,
+  appearance?: KitAppearance,
+): McpToolResult {
+  const html = buildApprovalCardHtml(model, appearance);
   const text = [
     `The agent cannot sign this for you.`,
     `Approve in EVE Vault: ${model.approvalUrl}`,
@@ -133,65 +123,33 @@ export function approvalCardToolResult(model: ApprovalCardModel): McpToolResult 
     `After you approve, ask the agent to call get_action_status with id ${model.id}.`,
   ].join("\n");
 
-  const resourceMeta = {
-    ui: {
-      prefersBorder: true,
-      csp: {
-        connectDomains: [] as string[],
-        resourceDomains: [] as string[],
-      },
-    },
-    "openai/widgetCsp": { connect_domains: [], resource_domains: [] },
-  };
-
-  return {
-    content: [
-      { type: "text", text },
-      {
-        type: "resource",
-        resource: {
-          uri: APPROVAL_CARD_RESOURCE_URI,
-          mimeType: MCP_APP_MIME_TYPE,
-          text: html,
-          _meta: resourceMeta,
-        },
-      },
-      {
-        type: "resource_link",
-        uri: APPROVAL_CARD_RESOURCE_URI,
-        name: "EVE Vault approval card",
-        mimeType: MCP_APP_MIME_TYPE,
-      },
-    ],
+  return htmlCardToolResult({
+    uri: APPROVAL_CARD_RESOURCE_URI,
+    name: "EVE Vault approval card",
+    html,
+    text,
     structuredContent: model,
-    _meta: {
-      ui: { resourceUri: APPROVAL_CARD_RESOURCE_URI },
-      "openai/outputTemplate": APPROVAL_CARD_RESOURCE_URI,
-      "openai/widgetAccessible": true,
-      "openai/resultCanProduceWidget": true,
-    },
-  };
+  });
 }
 
-export function approvalCardResourceContents(): {
-  uri: string;
-  mimeType: string;
-  text: string;
-  _meta: Record<string, unknown>;
-} {
+export function approvalCardResourceContents(appearance?: KitAppearance): UiResource {
   return {
     uri: APPROVAL_CARD_RESOURCE_URI,
+    name: "EVE Vault approval card",
     mimeType: MCP_APP_MIME_TYPE,
-    text: buildApprovalCardHtml({
-      id: "",
-      title: "Prepared action",
-      description: "Waiting for tool output from the host.",
-      approvalUrl: "",
-      walletAddress: "",
-      expiresAt: 0,
-      kind: "description",
-      status: "pending",
-    }),
+    text: buildApprovalCardHtml(
+      {
+        id: "",
+        title: "Prepared action",
+        description: "Waiting for tool output from the host.",
+        approvalUrl: "",
+        walletAddress: "",
+        expiresAt: 0,
+        kind: "description",
+        status: "pending",
+      },
+      appearance,
+    ),
     _meta: {
       ui: { prefersBorder: true },
     },
@@ -199,9 +157,5 @@ export function approvalCardResourceContents(): {
 }
 
 export function prepareToolMeta(): Record<string, unknown> {
-  return {
-    ui: { resourceUri: APPROVAL_CARD_RESOURCE_URI },
-    "openai/outputTemplate": APPROVAL_CARD_RESOURCE_URI,
-    "openai/resultCanProduceWidget": true,
-  };
+  return lockedDownWidgetMeta(APPROVAL_CARD_RESOURCE_URI);
 }

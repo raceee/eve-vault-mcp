@@ -1,9 +1,10 @@
-import {
-  APPROVAL_CARD_RESOURCE_URI,
-  approvalCardResourceContents,
-  type McpToolResult,
-} from "./approval-card.js";
+import { approvalCardResourceContents, type McpToolResult } from "./approval-card.js";
 import { isKitError } from "./errors.js";
+import {
+  MCP_APP_MIME_TYPE,
+  structuredCardResourceContents,
+  type UiResource,
+} from "./html-card.js";
 import type { EveVaultMcpKit } from "./kit.js";
 import { authenticateActor, wwwAuthenticate } from "./mcp.js";
 import { assertScopes } from "./scopes.js";
@@ -31,9 +32,20 @@ export function createMcpHandler(options: {
   serverName: string;
   serverVersion?: string;
   tools: BuilderTool[];
+  /** Extra MCP Apps / ChatGPT widget HTML resources (job lists, details, …). */
+  resources?: UiResource[];
 }): (request: Request) => Promise<Response> {
   const tools = new Map(options.tools.map((tool) => [tool.name, tool]));
   const resourceMetadataUrl = options.kit.resourceMetadataUrl();
+  const appearance = options.kit.config.appearance;
+  const resources = new Map<string, UiResource>();
+  const approval = approvalCardResourceContents(appearance);
+  resources.set(approval.uri, approval);
+  const structured = structuredCardResourceContents(appearance);
+  resources.set(structured.uri, structured);
+  for (const resource of options.resources ?? []) {
+    resources.set(resource.uri, resource);
+  }
 
   return async (request: Request) => {
     if (request.method === "OPTIONS") {
@@ -69,6 +81,7 @@ export function createMcpHandler(options: {
       const result = await dispatch(message, {
         actor,
         tools,
+        resources,
         serverName: options.serverName,
         serverVersion: options.serverVersion ?? "0.1.0",
       });
@@ -89,6 +102,7 @@ async function dispatch(
   ctx: {
     actor: Actor;
     tools: Map<string, BuilderTool>;
+    resources: Map<string, UiResource>;
     serverName: string;
     serverVersion: string;
   },
@@ -140,20 +154,19 @@ async function dispatch(
     }
     case "resources/list":
       return {
-        resources: [
-          {
-            uri: APPROVAL_CARD_RESOURCE_URI,
-            name: "EVE Vault approval card",
-            mimeType: approvalCardResourceContents().mimeType,
-          },
-        ],
+        resources: [...ctx.resources.values()].map((resource) => ({
+          uri: resource.uri,
+          name: resource.name,
+          mimeType: resource.mimeType ?? MCP_APP_MIME_TYPE,
+        })),
       };
     case "resources/read": {
       const uri = String(message.params?.uri ?? "");
-      if (uri !== APPROVAL_CARD_RESOURCE_URI) {
+      const resource = ctx.resources.get(uri);
+      if (!resource) {
         throw new Error(`Unknown resource: ${uri}`);
       }
-      return { contents: [approvalCardResourceContents()] };
+      return { contents: [resource] };
     }
     default:
       throw new Error(`Unsupported method: ${message.method ?? "(missing)"}`);

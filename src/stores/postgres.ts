@@ -70,11 +70,14 @@ export function createPostgresStore(client: SqlQueryClient): KitStore {
       return one<AuthSession>(client, "eve_vault_sessions", "id", id);
     },
     async completeAuthSession(id, completedAt) {
-      const session = await one<AuthSession>(client, "eve_vault_sessions", "id", id);
-      if (!session || session.completedAt !== undefined) return undefined;
-      session.completedAt = completedAt;
-      await upsert(client, "eve_vault_sessions", "id", id, session);
-      return session;
+      return claimJson<AuthSession>(
+        client,
+        "eve_vault_sessions",
+        "id",
+        id,
+        "completedAt",
+        completedAt,
+      );
     },
     async putNonce(record) {
       await upsert(client, "eve_vault_nonces", "id", record.id, record);
@@ -83,11 +86,7 @@ export function createPostgresStore(client: SqlQueryClient): KitStore {
       return one<NonceRecord>(client, "eve_vault_nonces", "id", id);
     },
     async consumeNonce(id, consumedAt) {
-      const record = await one<NonceRecord>(client, "eve_vault_nonces", "id", id);
-      if (!record || record.consumedAt !== undefined) return undefined;
-      record.consumedAt = consumedAt;
-      await upsert(client, "eve_vault_nonces", "id", id, record);
-      return record;
+      return claimJson<NonceRecord>(client, "eve_vault_nonces", "id", id, "consumedAt", consumedAt);
     },
     async putCode(codeHash, record) {
       await upsert(client, "eve_vault_codes", "code_hash", codeHash, record);
@@ -118,11 +117,14 @@ export function createPostgresStore(client: SqlQueryClient): KitStore {
       return one<RefreshTokenRecord>(client, "eve_vault_refresh_tokens", "token_hash", tokenHash);
     },
     async rotateRefreshToken(tokenHash, rotatedAt) {
-      const record = await one<RefreshTokenRecord>(client, "eve_vault_refresh_tokens", "token_hash", tokenHash);
-      if (!record || record.rotatedAt !== undefined) return undefined;
-      record.rotatedAt = rotatedAt;
-      await upsert(client, "eve_vault_refresh_tokens", "token_hash", tokenHash, record);
-      return record;
+      return claimJson<RefreshTokenRecord>(
+        client,
+        "eve_vault_refresh_tokens",
+        "token_hash",
+        tokenHash,
+        "rotatedAt",
+        rotatedAt,
+      );
     },
     async revokeRefreshFamily(familyId, revokedAt) {
       const refreshRows = await client.query(
@@ -187,4 +189,27 @@ async function one<T>(
   const result = await client.query(`SELECT body FROM ${table} WHERE ${keyCol} = $1`, [key]);
   const body = result.rows[0]?.body;
   return body as T | undefined;
+}
+
+/**
+ * Single-statement claim so two concurrent consumes cannot both succeed.
+ * Only rows whose JSON field is still missing/null are updated.
+ */
+async function claimJson<T>(
+  client: SqlQueryClient,
+  table: string,
+  keyCol: string,
+  key: string,
+  field: string,
+  value: number,
+): Promise<T | undefined> {
+  const result = await client.query(
+    `UPDATE ${table}
+     SET body = jsonb_set(body, ARRAY[$2]::text[], to_jsonb($3::bigint), true)
+     WHERE ${keyCol} = $1
+       AND COALESCE(body->>$2, '') = ''
+     RETURNING body`,
+    [key, field, value],
+  );
+  return result.rows[0]?.body as T | undefined;
 }

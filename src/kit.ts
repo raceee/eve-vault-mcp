@@ -1,3 +1,4 @@
+import type { KitAppearance } from "./appearance.js";
 import { noopCharacterResolver, type CharacterResolver } from "./character.js";
 import type { Clock } from "./clock.js";
 import { systemClock } from "./clock.js";
@@ -5,6 +6,7 @@ import { seedStaticClients, type StaticClientConfig } from "./clients.js";
 import { KitError } from "./errors.js";
 import { createHttpApp } from "./http/app.js";
 import { MemoryStore } from "./memory-store.js";
+import { consumeLiveNonce, issueStandaloneNonce, type IssueNonceInput } from "./nonce.js";
 import { isLocalIssuer } from "./redirect.js";
 import {
   prepareAction,
@@ -15,7 +17,8 @@ import {
 } from "./prepare.js";
 import type { KitStore } from "./store.js";
 import { revokeToken, verifyAccessToken } from "./tokens.js";
-import { DEFAULT_TTL, type Actor, type PreparedAction, type TtlConfig } from "./types.js";
+import { DEFAULT_TTL, type Actor, type NonceRecord, type PreparedAction, type TtlConfig } from "./types.js";
+import { wellKnownProtectedResourceUrl } from "./urls.js";
 import type { SignatureVerifier } from "./verify.js";
 
 export type KitConfig = {
@@ -37,6 +40,8 @@ export type KitConfig = {
   gasSponsor?: GasSponsor;
   clock?: Clock;
   ttl?: Partial<TtlConfig>;
+  /** Optional login/approve/card chrome. Omit to keep the kit's default dark theme. */
+  appearance?: KitAppearance;
 };
 
 export type ResolvedKitConfig = {
@@ -46,6 +51,7 @@ export type ResolvedKitConfig = {
   scopes: string[];
   defaultScopes: string[];
   ttl: TtlConfig;
+  appearance?: KitAppearance;
 };
 
 export type EveVaultMcpKit = {
@@ -61,6 +67,8 @@ export type EveVaultMcpKit = {
   revokeToken(token: string): Promise<void>;
   prepareAction(input: PrepareActionInput): Promise<PrepareActionResult>;
   getActionStatus(id: string): Promise<PreparedAction>;
+  issueNonce(input?: IssueNonceInput): Promise<NonceRecord>;
+  consumeNonce(id: string): Promise<NonceRecord>;
   resourceMetadataUrl(): string;
 };
 
@@ -79,6 +87,7 @@ export async function createEveVaultMcpKit(config: KitConfig): Promise<EveVaultM
     scopes: config.scopes,
     defaultScopes: config.defaultScopes ?? [...config.scopes],
     ttl,
+    ...(config.appearance ? { appearance: config.appearance } : {}),
   };
   if (config.staticClients) {
     await seedStaticClients(store, config.staticClients, clock.now());
@@ -105,8 +114,14 @@ export async function createEveVaultMcpKit(config: KitConfig): Promise<EveVaultM
     async getActionStatus(id: string) {
       return readPreparedAction(store, id, clock.now());
     },
+    async issueNonce(input) {
+      return issueStandaloneNonce(store, ttl, clock.now(), input ?? {});
+    },
+    async consumeNonce(id) {
+      return consumeLiveNonce(store, id, clock.now());
+    },
     resourceMetadataUrl() {
-      return new URL("/.well-known/oauth-protected-resource", resolved.issuer).toString();
+      return wellKnownProtectedResourceUrl(resolved.issuer);
     },
   };
 
